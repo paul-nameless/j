@@ -13,4 +13,4 @@ requires-python = ">=3.7"
 requires = ['pygments']
 
 [tool.flit.scripts]
-j = "j.main:main"
+j = "j.__init__:main"
