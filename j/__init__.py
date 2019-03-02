@@ -16,9 +16,10 @@ from pygments.lexers import JsonLexer
 __version__ = '1.0.1'
 
 
-def process(it):
-    if len(sys.argv) < 2:
-        dump = json.dumps(it, sort_keys=True, indent=4)
+def process(it, args):
+    indent = None if args.is_compact else 4
+    if not args.cmd:
+        dump = json.dumps(it, sort_keys=True, indent=indent)
         output = highlight(dump, JsonLexer(), TerminalFormatter())
         print(output, end='')
         return
@@ -28,9 +29,9 @@ def process(it):
     print(
         highlight(
             json.dumps(
-                eval(sys.argv[1], globs, locs),
+                eval(args.cmd, globs, locs),
                 sort_keys=True,
-                indent=4
+                indent=indent
             ),
             JsonLexer(),
             TerminalFormatter()
@@ -39,19 +40,36 @@ def process(it):
     )
 
 
-def main():
-    # hack to pass it inside of eval when used in comprehension
-    global it
+def main(args):
     try:
         stdin = sys.stdin.read()
         it = json.loads(stdin)
-        process(it)
+        process(it, args)
     except json.decoder.JSONDecodeError:
         its = [json.loads(line.strip())
                for line in stdin.split('\n') if line.strip()]
         for it in its:
-            process(it)
+            process(it, args)
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="""This is simple json parser.
+        Just pipe valid json to it and it will print nicely.
+        You can also modify json by passing expression as an argument
+        (json is accessed by `it` keyword).
+        """
+    )
+    parser.add_argument(
+        '-c', dest='is_compact',
+        action='store_true',
+        help='output compact'
+    )
+    parser.add_argument(
+        'cmd',
+        nargs='?',
+        help='expression (e.g. | j "{str(v):k for k, v in it.items()}")'
+    )
+    args = parser.parse_args()
+    main(args)
